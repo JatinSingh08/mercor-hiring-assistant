@@ -66,8 +66,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/recruit-ai.git
-cd recruit-ai
+git clone https://github.com/yourusername/mercor-hiring-assistant.git
+cd mercor-hiring-assistant
 
 # Install dependencies
 npm install
