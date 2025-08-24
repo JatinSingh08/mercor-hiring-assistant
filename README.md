@@ -2,12 +2,6 @@
 
 > **Transform your hiring process from guesswork to data-driven decisions with intelligent candidate scoring, smart filtering, and automated team building.**
 
-[![React](https://img.shields.io/badge/React-19.0.0-blue.svg)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4.0-38B2AC.svg)](https://tailwindcss.com/)
-[![Vite](https://img.shields.io/badge/Vite-7.1.3-646CFF.svg)](https://vitejs.dev/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
 ## 🚀 Features
 
 ### 🎯 **AI-Powered Candidate Scoring**
