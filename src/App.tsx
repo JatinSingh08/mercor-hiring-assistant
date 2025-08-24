@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Download, Filter, Users, SlidersHorizontal, Upload, BrainCircuit, Sparkles, Menu, X } from "lucide-react";
+import { Download, Filter, Users, SlidersHorizontal, Upload, BrainCircuit, Sparkles, Menu, X, FileSpreadsheet } from "lucide-react";
 import type { Candidate, Constraints, Weights } from "@/types/candidate";
 import { DEFAULT_CONSTRAINTS, DEFAULT_WEIGHTS } from "@/lib/constant";
 import { parseUSD } from "@/lib/utils";
@@ -12,7 +12,10 @@ import { NumberField } from "@/components/ui/NumberField";
 import { CurrencyField } from "@/components/ui/CurrencyField";
 import { CandidateCard } from "@/components/CandidateCard";
 import { TeamSummary } from "@/components/TeamSummary";
+import { SkillsFilter } from "@/components/SkillsFilter";
 import { SEED_APPLICANTS } from "@/data/seed";
+import "antd/dist/reset.css";
+import * as XLSX from 'xlsx';
 
 // Debounce function to limit rapid updates
 function useDebounce<T>(value: T, delay: number): T {
@@ -37,6 +40,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
 
   const [weights, setWeights] = useState<Weights>(DEFAULT_WEIGHTS);
   const [constraints, setConstraints] = useState<Constraints>(DEFAULT_CONSTRAINTS);
@@ -67,6 +71,10 @@ export default function App() {
           if (parsed.length > 0 && typeof parsed[0] === 'object' && 'name' in parsed[0]) {
             setCandidates(parsed as Candidate[]);
             setJsonError(null);
+            // Clear selected skills when new data is loaded
+            setSelectedSkills(new Set());
+            // Clear selected candidates when new data is loaded
+            setSelected({});
           } else {
             setJsonError("Invalid data format. Expected an array of candidate objects.");
             setCandidates([]);
@@ -90,41 +98,73 @@ export default function App() {
     }
   }, [debouncedRawJson]);
 
+  // Filter candidates based on selected skills
+  const filteredCandidates = useMemo(() => {
+    if (selectedSkills.size === 0) {
+      return candidates; // Show all candidates when no skills are selected
+    }
+    
+    return candidates.filter(candidate => {
+      if (!candidate.skills || candidate.skills.length === 0) {
+        return false; // Filter out candidates with no skills
+      }
+      
+      // Check if candidate has at least one of the selected skills
+      return candidate.skills.some(skill => selectedSkills.has(skill));
+    });
+  }, [candidates, selectedSkills]);
+
   // Memoize expensive computations with proper dependencies
   const { ordered } = useMemo(() => {
-    if (candidates.length === 0) return { ordered: [] };
+    if (filteredCandidates.length === 0) return { ordered: [] };
     
     // Process candidates in chunks for better performance
     const chunkSize = 50;
     const scored: Array<{ c: Candidate; score: number; breakdown: any }> = [];
     
-    for (let i = 0; i < candidates.length; i += chunkSize) {
-      const chunk = candidates.slice(i, i + chunkSize);
+    for (let i = 0; i < filteredCandidates.length; i += chunkSize) {
+      const chunk = filteredCandidates.slice(i, i + chunkSize);
       const chunkScored = chunk.map((c) => ({ 
         c, 
-        ...computeCandidateScore(c, { weights: debouncedWeights, all: candidates }) 
+        ...computeCandidateScore(c, { weights: debouncedWeights, all: filteredCandidates }) 
       }));
       scored.push(...chunkScored);
     }
     
     const ordered = [...scored].sort((a, b) => b.score - a.score);
     return { ordered };
-  }, [candidates, debouncedWeights]);
+  }, [filteredCandidates, debouncedWeights]);
+
+  // Filter selected candidates to only include those that are still visible
+  const filteredSelected = useMemo(() => {
+    const filteredEmails = new Set(filteredCandidates.map(c => c.email));
+    const newSelected: Record<string, boolean> = {};
+    
+    Object.entries(selected).forEach(([email, isSelected]) => {
+      if (filteredEmails.has(email) && isSelected) {
+        newSelected[email] = true;
+      }
+    });
+    
+    return newSelected;
+  }, [selected, filteredCandidates]);
 
   const pickedTeam = useMemo(() => {
-    if (candidates.length === 0) {
+    if (filteredCandidates.length === 0) {
       return { team: [], summary: { skills: [], locations: [], cost: 0 }, totalCost: 0 };
     }
     
-    const manual = Object.entries(selected)
+    const manual = Object.entries(filteredSelected)
       .filter(([, v]) => v)
-      .map(([k]) => candidates.find((c) => c.email === k))
+      .map(([k]) => filteredCandidates.find((c) => c.email === k))
       .filter(Boolean) as Candidate[];
+    
     if (manual.length === constraints.teamSize) {
       return { team: manual, summary: buildTeamSummary(manual), totalCost: manual.reduce((a, c) => a + (parseUSD(c.annual_salary_expectation?.["full-time"]) ?? 0), 0) };
     }
-    return pickTeam(candidates, debouncedWeights, constraints);
-  }, [selected, candidates, debouncedWeights, constraints]);
+    
+    return pickTeam(filteredCandidates, debouncedWeights, constraints);
+  }, [filteredSelected, filteredCandidates, debouncedWeights, constraints]);
 
   // Memoize callback functions to prevent unnecessary re-renders
   const togglePick = useCallback((c: Candidate) => {
@@ -138,6 +178,33 @@ export default function App() {
   const handleConstraintChange = useCallback((key: keyof Constraints, value: number | null) => {
     setConstraints((prev) => ({ ...prev, [key]: value }));
   }, []);
+
+  // Skills filter handlers
+  const handleSkillToggle = useCallback((skill: string) => {
+    setSelectedSkills((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(skill)) {
+        newSet.delete(skill);
+      } else {
+        newSet.add(skill);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleClearAllSkills = useCallback(() => {
+    setSelectedSkills(new Set());
+  }, []);
+
+  const handleSelectAllSkills = useCallback(() => {
+    const allSkills = new Set<string>();
+    candidates.forEach(candidate => {
+      if (candidate.skills) {
+        candidate.skills.forEach(skill => allSkills.add(skill));
+      }
+    });
+    setSelectedSkills(allSkills);
+  }, [candidates]);
 
   const exportReport = useCallback(() => {
     const lines: string[] = [];
@@ -163,6 +230,82 @@ export default function App() {
     URL.revokeObjectURL(url);
   }, [constraints.teamSize, pickedTeam.summary, pickedTeam.team]);
 
+  const exportToExcel = useCallback(() => {
+    if (pickedTeam.team.length === 0) {
+      alert('No candidates selected for export');
+      return;
+    }
+
+    // Prepare data for Excel export
+    const excelData = pickedTeam.team.map(candidate => {
+      const salary = parseUSD(candidate.annual_salary_expectation?.["full-time"]) ?? 0;
+      const { score } = computeCandidateScore(candidate, { weights: debouncedWeights, all: filteredCandidates });
+      
+      return {
+        'Name': candidate.name,
+        'Email': candidate.email,
+        'Location': candidate.location,
+        'Phone': candidate.phone || 'N/A',
+        'Score (%)': Math.round(score * 100),
+        'Expected Salary': `$${salary.toLocaleString()}`,
+        'Skills': candidate.skills?.join(', ') || 'None',
+        'Work Experience': candidate.work_experiences?.length || 0,
+        'Education': candidate.education.degrees?.map(edu => `${edu.degree} from ${edu.school}`).join('; ') || 'None',
+        'Years of Experience': candidate.work_experiences?.length || 0,
+        'Companies Worked At': candidate.work_experiences?.map(exp => exp.company).join(', ') || 'None',
+        'Roles': candidate.work_experiences?.map(exp => exp.roleName).join(', ') || 'None'
+      };
+    });
+
+    // Add summary row
+    const totalSalary = pickedTeam.team.reduce((total, candidate) => {
+      return total + (parseUSD(candidate.annual_salary_expectation?.["full-time"]) ?? 0);
+    }, 0);
+
+    const summaryRow = {
+      'Name': 'TEAM SUMMARY',
+      'Email': '',
+      'Location': '',
+      'Phone': '',
+      'Score (%)': 0,
+      'Expected Salary': `$${totalSalary.toLocaleString()}`,
+      'Skills': `${pickedTeam.summary.skills.length} unique skills`,
+      'Work Experience': 0,
+      'Education': '',
+      'Years of Experience': 0,
+      'Companies Worked At': `${pickedTeam.summary.locations.length} locations`,
+      'Roles': ''
+    };
+
+    excelData.push(summaryRow);
+
+    // Create workbook and worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Picked Candidates');
+
+    // Auto-size columns
+    const colWidths = [
+      { wch: 20 }, // Name
+      { wch: 30 }, // Email
+      { wch: 15 }, // Location
+      { wch: 15 }, // Phone
+      { wch: 12 }, // Score
+      { wch: 15 }, // Salary
+      { wch: 40 }, // Skills
+      { wch: 15 }, // Work Experience
+      { wch: 40 }, // Education
+      { wch: 20 }, // Years of Experience
+      { wch: 40 }, // Companies
+      { wch: 40 }  // Roles
+    ];
+    ws['!cols'] = colWidths;
+
+    // Export the file
+    const fileName = `hiring-team-${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  }, [pickedTeam.team, pickedTeam.summary, debouncedWeights, filteredCandidates]);
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-900">
       {/* Mobile Menu Button */}
@@ -184,12 +327,21 @@ export default function App() {
           <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             HireDeck
           </h1>
-          <span className="hidden sm:inline text-sm text-blue-600 font-medium flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-full">
-            <Users className="w-4 h-4" /> {candidates.length} applicants
+          <span className="ml-auto sm:ml-0 text-sm text-blue-600 font-medium flex items-center justify-center gap-2 bg-blue-50 px-2 py-1 rounded-full">
+            <Users className="w-4 h-4 flex-shrink-0" /> {filteredCandidates.length}/{candidates.length}
           </span>
-          <span className="ml-auto sm:ml-0 text-sm text-blue-600 font-medium flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-full">
-            <Users className="w-4 h-4" /> {candidates.length}
-          </span>
+          
+          {/* Excel Export Button */}
+          {pickedTeam.team.length > 0 && (
+            <button
+              onClick={exportToExcel}
+              className="ml-3 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+              title="Export picked candidates to Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">Export Excel</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -197,7 +349,7 @@ export default function App() {
       <main className="w-full flex">
         {/* Sidebar */}
         <div className={`
-          fixed inset-y-0 left-0 z-30 w-80 bg-white/95 backdrop-blur border-r border-blue-200 shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:z-auto
+          fixed inset-y-0 left-0 bottom-0 z-30 w-80 backdrop-blur border-r border-blue-200 shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:z-auto
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
           <div className="h-full overflow-y-auto p-4 lg:p-6 space-y-6">
@@ -246,6 +398,37 @@ export default function App() {
               </div>
             </Card>
 
+            {/* Skills Filter */}
+            {candidates.length > 0 && (
+              <Card title="Skills Filter" icon={<Filter className="w-4 h-4" />} className="border-indigo-200 bg-gradient-to-br from-white to-indigo-50">
+                <SkillsFilter
+                  candidates={candidates}
+                  selectedSkills={selectedSkills}
+                  onSkillToggle={handleSkillToggle}
+                  onClearAll={handleClearAllSkills}
+                  onSelectAll={handleSelectAllSkills}
+                />
+                
+                {/* Filter Status */}
+                {selectedSkills.size > 0 && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Filter className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-700">Filter Active</span>
+                    </div>
+                    <p className="text-xs text-blue-600">
+                      Showing {filteredCandidates.length} of {candidates.length} candidates with selected skills
+                    </p>
+                    {filteredCandidates.length < candidates.length && (
+                      <p className="text-xs text-blue-500 mt-1">
+                        {candidates.length - filteredCandidates.length} candidates filtered out
+                      </p>
+                    )}
+                  </div>
+                )}
+              </Card>
+            )}
+
             <Card title="Scoring Weights" icon={<SlidersHorizontal className="w-4 h-4" />} className="border-purple-200 bg-gradient-to-br from-white to-purple-50">
               <Slider label="Skill Match" value={weights.skillMatch} onChange={(v) => handleWeightChange('skillMatch', v)} />
               <Slider label="Role Relevance" value={weights.roleRelevance} onChange={(v) => handleWeightChange('roleRelevance', v)} />
@@ -275,11 +458,32 @@ export default function App() {
             {/* Recommended Team Section */}
             <Card title="Recommended Team" icon={<BrainCircuit className="w-4 h-4" />} className="border-indigo-200 bg-gradient-to-br from-white to-indigo-50">
               <TeamSummary summary={pickedTeam.summary} size={constraints.teamSize} />
+              
+              {/* Filter Notice */}
+              {selectedSkills.size > 0 && filteredCandidates.length < candidates.length && (
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-700">Filter Notice</span>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-1">
+                    Team recommendations are based on {filteredCandidates.length} filtered candidates with selected skills
+                  </p>
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
                 <AnimatePresence>
                   {pickedTeam.team.map((c) => (
                     <motion.div key={c.email} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                      <CandidateCard candidate={c} all={candidates} weights={debouncedWeights} picked={!!selected[c.email]} onToggle={togglePick} />
+                      <CandidateCard 
+                        candidate={c} 
+                        all={filteredCandidates} 
+                        weights={debouncedWeights} 
+                        picked={!!filteredSelected[c.email]} 
+                        onToggle={togglePick}
+                        selectedSkills={selectedSkills}
+                      />
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -294,10 +498,30 @@ export default function App() {
                   <p className="text-lg font-medium">No candidates loaded</p>
                   <p className="text-sm">Paste your JSON data in the Dataset section to get started</p>
                 </div>
+              ) : filteredCandidates.length === 0 ? (
+                <div className="text-center py-12 text-amber-500">
+                  <Filter className="w-12 h-12 mx-auto mb-4 text-amber-300" />
+                  <p className="text-lg font-medium">No candidates match selected skills</p>
+                  <p className="text-sm">Try adjusting your skill filter or clear all selections</p>
+                  <button
+                    onClick={handleClearAllSkills}
+                    className="mt-4 px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors duration-200"
+                  >
+                    Clear Skill Filter
+                  </button>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                   {ordered.map(({ c }) => (
-                    <CandidateCard key={c.email} candidate={c} all={candidates} weights={debouncedWeights} picked={!!selected[c.email]} onToggle={togglePick} />
+                    <CandidateCard 
+                      key={c.email} 
+                      candidate={c} 
+                      all={filteredCandidates} 
+                      weights={debouncedWeights} 
+                      picked={!!filteredSelected[c.email]} 
+                      onToggle={togglePick}
+                      selectedSkills={selectedSkills}
+                    />
                   ))}
                 </div>
               )}
