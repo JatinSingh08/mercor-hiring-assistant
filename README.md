@@ -153,16 +153,6 @@ const DEFAULT_CONSTRAINTS = {
 - **RequestIdleCallback**: Utilizes browser idle time for background tasks
 - **Optimized Rendering**: React.memo and useCallback for component optimization
 
-## 🔒 Data Privacy
-
-- **Client-side Processing**: All data processing happens locally
-- **No External APIs**: No candidate data sent to third-party services
-- **Secure Export**: Excel files generated locally with no data transmission
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
 ### Development Setup
 ```bash
 # Install dependencies
@@ -178,10 +168,6 @@ npm run lint
 npm run build
 ```
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 🙏 Acknowledgments
 
 - **React Team** for the amazing framework
@@ -190,14 +176,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Lucide** for beautiful icons
 - **SheetJS** for Excel export functionality
 
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/recruit-ai/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/recruit-ai/discussions)
-- **Email**: support@recruitai.com
-
 ---
 
-**Made with ❤️ by the RecruitAI Team**
+**Made with ❤️ by the Jatin Singh**
 
 *Transform your hiring process today with AI-powered intelligence!* 🚀
