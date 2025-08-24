@@ -12,9 +12,11 @@ import { exportReport, exportToExcel } from "@/lib/exportUtils";
 import { processJsonData, filterCandidatesBySkills, getAllSkillsFromCandidates, getFilteredSelectedCandidates } from "@/lib/dataProcessing";
 import { processCandidatesInChunks, buildPickedTeam } from "@/lib/candidateProcessing";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import "antd/dist/reset.css";
 
 export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
   const [rawJson, setRawJson] = useState<string>(JSON.stringify(SEED_APPLICANTS, null, 2));
   const [candidates, setCandidates] = useState<Candidate[]>(SEED_APPLICANTS);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -28,6 +30,14 @@ export default function App() {
 
   const debouncedWeights = useDebounce(weights, APP_CONSTANTS.DEBOUNCE_DELAYS.WEIGHTS);
   const debouncedRawJson = useDebounce(rawJson, APP_CONSTANTS.DEBOUNCE_DELAYS.JSON_INPUT);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000); 
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     setIsProcessing(true);
@@ -108,6 +118,11 @@ export default function App() {
   const handleExportToExcel = useCallback(() => {
     exportToExcel(pickedTeam, debouncedWeights, filteredCandidates);
   }, [pickedTeam, debouncedWeights, filteredCandidates]);
+
+  // Show loading spinner while app is initializing
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-900">
