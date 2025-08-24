@@ -20,7 +20,6 @@ function SkillsFilterComponent({
 }: SkillsFilterProps) {
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set()); // All collapsed by default
 
-    // Extract all unique skills from all candidates
     const allSkills = useMemo(() => {
         const skillsSet = new Set<string>();
         candidates.forEach(candidate => {
@@ -31,7 +30,6 @@ function SkillsFilterComponent({
         return Array.from(skillsSet).sort();
     }, [candidates]);
 
-    // Count how many candidates have each skill
     const skillCounts = useMemo(() => {
         const counts: Record<string, number> = {};
         allSkills.forEach(skill => {
@@ -42,7 +40,6 @@ function SkillsFilterComponent({
         return counts;
     }, [allSkills, candidates]);
 
-    // Group skills by category (you can customize this)
     const skillCategories = useMemo(() => {
         const categories: Record<string, string[]> = {
             'Frontend': ['React', 'Vue', 'Angular', 'JavaScript', 'TypeScript', 'HTML', 'CSS', 'SASS', 'Tailwind', 'Bootstrap'],
@@ -79,7 +76,6 @@ function SkillsFilterComponent({
         return categorized;
     }, [allSkills]);
 
-    // Toggle category expansion
     const toggleCategory = (category: string) => {
         setExpandedCategories(prev => {
             const newSet = new Set(prev);
@@ -92,13 +88,11 @@ function SkillsFilterComponent({
         });
     };
 
-    // Expand all categories
     const expandAll = () => {
         const allCategories = new Set(Object.keys(skillCategories));
         setExpandedCategories(allCategories);
     };
 
-    // Collapse all categories
     const collapseAll = () => {
         setExpandedCategories(new Set());
     };
@@ -114,7 +108,6 @@ function SkillsFilterComponent({
 
     return (
         <div className="space-y-4">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Filter className="w-4 h-4 text-indigo-600" />
@@ -136,7 +129,6 @@ function SkillsFilterComponent({
                 </div>
             </div>
 
-            {/* Collapse/Expand All Buttons */}
             <div className="flex gap-2">
                 <button
                     onClick={expandAll}
@@ -152,7 +144,6 @@ function SkillsFilterComponent({
                 </button>
             </div>
 
-            {/* Selected Skills Count */}
             {selectedSkills.size > 0 && (
                 <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
@@ -190,7 +181,6 @@ function SkillsFilterComponent({
                 </div>
             )}
 
-            {/* Skills by Category */}
             <div className="space-y-2">
                 {Object.entries(skillCategories).map(([category, skills]) => {
                     if (skills.length === 0) return null;
@@ -223,7 +213,6 @@ function SkillsFilterComponent({
                                 </div>
                             </button>
 
-                            {/* Skills List - Collapsible */}
                             {isExpanded && (
                                 <div className="p-3 bg-white border-t border-gray-200 space-y-1">
                                     {skills.map(skill => {
@@ -255,7 +244,6 @@ function SkillsFilterComponent({
                 })}
             </div>
 
-            {/* Quick Actions */}
             <div className="pt-2 border-t border-gray-200">
                 <div className="text-xs text-gray-500 text-center">
                     Click category headers to expand/collapse skills

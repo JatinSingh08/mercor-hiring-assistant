@@ -26,11 +26,9 @@ function CandidateCardComponent({
   const salary = parseUSD(candidate.annual_salary_expectation?.["full-time"]) ?? 0;
   const [showAllExperience, setShowAllExperience] = useState(false);
 
-  // Extract work experiences and skills
   const workExperiences = candidate.work_experiences || [];
   const skills = candidate.skills || [];
 
-  // Calculate work experience summary
   const experienceSummary = useMemo(() => {
     if (workExperiences.length === 0) return null;
     
@@ -46,7 +44,6 @@ function CandidateCardComponent({
         ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-green-100 shadow-emerald-200" 
         : "border-gray-200 bg-gradient-to-br from-white to-gray-50 hover:border-blue-300"
     } shadow-sm`}>
-      {/* Fixed Header Section */}
       <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 border-b border-gray-100 flex-shrink-0">
         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
           picked 
@@ -76,14 +73,11 @@ function CandidateCardComponent({
         )}
       </div>
 
-      {/* Scrollable Content Section */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
-        {/* Fixed Badges Section */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
           <Badge label="Score" value={`${(score * 100).toFixed(0)}%`} className="col-span-1" />
           <Badge label="Salary" value={`$${salary.toLocaleString()}`} className="col-span-1" />
           
-          {/* Work Experience Summary Badge */}
           {experienceSummary && (
             <div className="col-span-2">
               <div className="rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 px-3 py-2 shadow-sm">
@@ -101,7 +95,6 @@ function CandidateCardComponent({
           )}
         </div>
 
-        {/* Skills Section */}
         {skills.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -134,7 +127,6 @@ function CandidateCardComponent({
           </div>
         )}
 
-        {/* Work Experience Section */}
         {workExperiences.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -191,7 +183,6 @@ function CandidateCardComponent({
           </div>
         )}
 
-        {/* Why They Fit Section */}
         <div className="text-sm">
           <div className="text-gray-700 font-medium flex items-center gap-2 mb-2">
             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
@@ -205,7 +196,6 @@ function CandidateCardComponent({
         </div>
       </div>
 
-      {/* Scrollable Indicator - Fixed at bottom of card */}
       <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         <div className="flex flex-col items-center text-gray-400 animate-pulse">
           <ChevronsDown className="w-4 h-4" />
