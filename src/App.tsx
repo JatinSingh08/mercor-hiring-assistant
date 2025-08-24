@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Download, Filter, Users, SlidersHorizontal, Upload, BrainCircuit, Sparkles, Menu, X, FileSpreadsheet, Brain, UserCheck } from "lucide-react";
+import { Download, Filter, Users, SlidersHorizontal, Upload, BrainCircuit, Sparkles, Menu, X, FileSpreadsheet, Brain } from "lucide-react";
 import type { Candidate, Constraints, Weights } from "@/types/candidate";
 import { DEFAULT_CONSTRAINTS, DEFAULT_WEIGHTS } from "@/lib/constant";
 import { parseUSD } from "@/lib/utils";
