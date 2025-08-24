@@ -176,6 +176,10 @@ npm run build
 - **Lucide** for beautiful icons
 - **SheetJS** for Excel export functionality
 
+## Video Demonstration
+
+https://www.loom.com/share/7b3b47514fd0495ba156a648b6d37714?sid=cf9a572b-6fe1-4e22-b186-ef8b1524a028
+
 ---
 
 **Made with ❤️ by the Jatin Singh**
