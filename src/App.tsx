@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Download, Filter, Users, SlidersHorizontal, Upload, BrainCircuit, Sparkles, Menu, X, FileSpreadsheet } from "lucide-react";
+import { Download, Filter, Users, SlidersHorizontal, Upload, BrainCircuit, Sparkles, Menu, X, FileSpreadsheet, Brain, UserCheck } from "lucide-react";
 import type { Candidate, Constraints, Weights } from "@/types/candidate";
 import { DEFAULT_CONSTRAINTS, DEFAULT_WEIGHTS } from "@/lib/constant";
 import { parseUSD } from "@/lib/utils";
@@ -17,7 +17,6 @@ import { SEED_APPLICANTS } from "@/data/seed";
 import "antd/dist/reset.css";
 import * as XLSX from 'xlsx';
 
-// Debounce function to limit rapid updates
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -46,13 +45,9 @@ export default function App() {
   const [constraints, setConstraints] = useState<Constraints>(DEFAULT_CONSTRAINTS);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  // Debounce weights to prevent excessive re-computations
   const debouncedWeights = useDebounce(weights, 150);
-  
-  // Debounce JSON parsing to prevent processing on every keystroke
   const debouncedRawJson = useDebounce(rawJson, 500);
 
-  // Process JSON data with error handling and performance optimization
   useEffect(() => {
     if (!debouncedRawJson.trim()) {
       setCandidates([]);
@@ -62,18 +57,14 @@ export default function App() {
 
     setIsProcessing(true);
     
-    // Use requestIdleCallback for better performance (fallback to setTimeout)
     const processData = () => {
       try {
         const parsed = JSON.parse(debouncedRawJson);
         if (Array.isArray(parsed)) {
-          // Validate that it's an array of candidates
           if (parsed.length > 0 && typeof parsed[0] === 'object' && 'name' in parsed[0]) {
             setCandidates(parsed as Candidate[]);
             setJsonError(null);
-            // Clear selected skills when new data is loaded
             setSelectedSkills(new Set());
-            // Clear selected candidates when new data is loaded
             setSelected({});
           } else {
             setJsonError("Invalid data format. Expected an array of candidate objects.");
@@ -98,27 +89,23 @@ export default function App() {
     }
   }, [debouncedRawJson]);
 
-  // Filter candidates based on selected skills
   const filteredCandidates = useMemo(() => {
     if (selectedSkills.size === 0) {
-      return candidates; // Show all candidates when no skills are selected
+      return candidates;
     }
     
     return candidates.filter(candidate => {
       if (!candidate.skills || candidate.skills.length === 0) {
-        return false; // Filter out candidates with no skills
+        return false;
       }
       
-      // Check if candidate has at least one of the selected skills
       return candidate.skills.some(skill => selectedSkills.has(skill));
     });
   }, [candidates, selectedSkills]);
 
-  // Memoize expensive computations with proper dependencies
   const { ordered } = useMemo(() => {
     if (filteredCandidates.length === 0) return { ordered: [] };
     
-    // Process candidates in chunks for better performance
     const chunkSize = 50;
     const scored: Array<{ c: Candidate; score: number; breakdown: any }> = [];
     
@@ -135,7 +122,6 @@ export default function App() {
     return { ordered };
   }, [filteredCandidates, debouncedWeights]);
 
-  // Filter selected candidates to only include those that are still visible
   const filteredSelected = useMemo(() => {
     const filteredEmails = new Set(filteredCandidates.map(c => c.email));
     const newSelected: Record<string, boolean> = {};
@@ -166,7 +152,6 @@ export default function App() {
     return pickTeam(filteredCandidates, debouncedWeights, constraints);
   }, [filteredSelected, filteredCandidates, debouncedWeights, constraints]);
 
-  // Memoize callback functions to prevent unnecessary re-renders
   const togglePick = useCallback((c: Candidate) => {
     setSelected((prev) => ({ ...prev, [c.email]: !prev[c.email] }));
   }, []);
@@ -179,7 +164,6 @@ export default function App() {
     setConstraints((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  // Skills filter handlers
   const handleSkillToggle = useCallback((skill: string) => {
     setSelectedSkills((prev) => {
       const newSet = new Set(prev);
@@ -236,7 +220,6 @@ export default function App() {
       return;
     }
 
-    // Prepare data for Excel export
     const excelData = pickedTeam.team.map(candidate => {
       const salary = parseUSD(candidate.annual_salary_expectation?.["full-time"]) ?? 0;
       const { score } = computeCandidateScore(candidate, { weights: debouncedWeights, all: filteredCandidates });
@@ -257,7 +240,6 @@ export default function App() {
       };
     });
 
-    // Add summary row
     const totalSalary = pickedTeam.team.reduce((total, candidate) => {
       return total + (parseUSD(candidate.annual_salary_expectation?.["full-time"]) ?? 0);
     }, 0);
@@ -279,36 +261,32 @@ export default function App() {
 
     excelData.push(summaryRow);
 
-    // Create workbook and worksheet
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Picked Candidates');
 
-    // Auto-size columns
     const colWidths = [
-      { wch: 20 }, // Name
-      { wch: 30 }, // Email
-      { wch: 15 }, // Location
-      { wch: 15 }, // Phone
-      { wch: 12 }, // Score
-      { wch: 15 }, // Salary
-      { wch: 40 }, // Skills
-      { wch: 15 }, // Work Experience
-      { wch: 40 }, // Education
-      { wch: 20 }, // Years of Experience
-      { wch: 40 }, // Companies
-      { wch: 40 }  // Roles
+      { wch: 20 },
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 40 },
+      { wch: 15 },
+      { wch: 40 },
+      { wch: 20 },
+      { wch: 40 },
+      { wch: 40 }
     ];
     ws['!cols'] = colWidths;
 
-    // Export the file
     const fileName = `hiring-team-${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(wb, fileName);
   }, [pickedTeam.team, pickedTeam.summary, debouncedWeights, filteredCandidates]);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-900">
-      {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -318,20 +296,18 @@ export default function App() {
         </button>
       </div>
 
-      {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur bg-white/80 border-b border-blue-200 shadow-lg">
         <div className="w-full px-4 py-3 lg:py-4 flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-            <Sparkles className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+            <Brain className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
           </div>
           <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            HireDeck
+            RecruitAI
           </h1>
           <span className="ml-auto sm:ml-0 text-sm text-blue-600 font-medium flex items-center justify-center gap-2 bg-blue-50 px-2 py-1 rounded-full">
             <Users className="w-4 h-4 flex-shrink-0" /> {filteredCandidates.length}/{candidates.length}
           </span>
           
-          {/* Excel Export Button */}
           {pickedTeam.team.length > 0 && (
             <button
               onClick={exportToExcel}
@@ -345,9 +321,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="w-full flex">
-        {/* Sidebar */}
         <div className={`
           fixed inset-y-0 left-0 bottom-0 z-30 w-80 backdrop-blur border-r border-blue-200 shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:z-auto
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -357,7 +331,6 @@ export default function App() {
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">Paste or edit the raw JSON of applicants. The UI updates automatically after you stop typing.</p>
                 
-                {/* Processing indicator */}
                 {isProcessing && (
                   <div className="flex items-center gap-2 text-sm text-blue-600">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -365,14 +338,12 @@ export default function App() {
                   </div>
                 )}
                 
-                {/* Error display */}
                 {jsonError && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-700">{jsonError}</p>
                   </div>
                 )}
                 
-                {/* Success indicator */}
                 {!jsonError && candidates.length > 0 && (
                   <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-sm text-green-700">✓ {candidates.length} candidates loaded successfully</p>
@@ -391,14 +362,12 @@ export default function App() {
                   disabled={isProcessing}
                 />
                 
-                {/* Performance tip */}
                 <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
                   💡 <strong>Performance Tip:</strong> Large datasets (&gt;1000 candidates) may take a moment to process. The app will remain responsive during processing.
                 </div>
               </div>
             </Card>
 
-            {/* Skills Filter */}
             {candidates.length > 0 && (
               <Card title="Skills Filter" icon={<Filter className="w-4 h-4" />} className="border-indigo-200 bg-gradient-to-br from-white to-indigo-50">
                 <SkillsFilter
@@ -409,7 +378,6 @@ export default function App() {
                   onSelectAll={handleSelectAllSkills}
                 />
                 
-                {/* Filter Status */}
                 {selectedSkills.size > 0 && (
                   <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
@@ -452,14 +420,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* Main Content Area */}
         <div className="flex-1 w-full lg:w-auto">
           <div className="p-4 lg:p-6 lg:p-8 space-y-6">
-            {/* Recommended Team Section */}
             <Card title="Recommended Team" icon={<BrainCircuit className="w-4 h-4" />} className="border-indigo-200 bg-gradient-to-br from-white to-indigo-50">
               <TeamSummary summary={pickedTeam.summary} size={constraints.teamSize} />
               
-              {/* Filter Notice */}
               {selectedSkills.size > 0 && filteredCandidates.length < candidates.length && (
                 <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <div className="flex items-center gap-2">
@@ -490,7 +455,6 @@ export default function App() {
               </div>
             </Card>
 
-            {/* All Applicants Section */}
             <Card title="All Applicants" className="border-orange-200 bg-gradient-to-br from-white to-orange-50">
               {candidates.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
@@ -530,7 +494,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="w-full px-4 pb-6 lg:pb-10 text-center text-sm text-gray-500">
         <div className="inline-flex items-center gap-2 bg-white/60 px-4 py-2 rounded-full border border-gray-200">
           <Sparkles className="w-4 h-4 text-blue-500" />
@@ -538,7 +501,6 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/20 z-20 lg:hidden"
