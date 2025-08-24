@@ -2,6 +2,7 @@ import { useMemo, memo, useState } from "react";
 import { Code, Filter, X, ChevronDown, ChevronRight } from "lucide-react";
 import { Checkbox } from "antd";
 import type { Candidate } from "@/types/candidate";
+import { SKILL_CATEGORIES } from "@/data/seed";
 
 interface SkillsFilterProps {
     candidates: Candidate[];
@@ -41,15 +42,6 @@ function SkillsFilterComponent({
     }, [allSkills, candidates]);
 
     const skillCategories = useMemo(() => {
-        const categories: Record<string, string[]> = {
-            'Frontend': ['React', 'Vue', 'Angular', 'JavaScript', 'TypeScript', 'HTML', 'CSS', 'SASS', 'Tailwind', 'Bootstrap'],
-            'Backend': ['Node.js', 'Python', 'Java', 'C#', 'PHP', 'Ruby', 'Go', 'Rust', 'Django', 'Express', 'Spring'],
-            'Database': ['SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'Elasticsearch', 'DynamoDB'],
-            'DevOps': ['Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'CI/CD', 'Jenkins', 'GitLab', 'Terraform'],
-            'Mobile': ['React Native', 'Flutter', 'iOS', 'Android', 'Swift', 'Kotlin'],
-            'Other': []
-        };
-
         const categorized: Record<string, string[]> = {
             'Frontend': [],
             'Backend': [],
@@ -61,7 +53,7 @@ function SkillsFilterComponent({
 
         allSkills.forEach(skill => {
             let isCategorized = false;
-            for (const [category, skills] of Object.entries(categories)) {
+            for (const [category, skills] of Object.entries(SKILL_CATEGORIES)) {
                 if (skills.some(s => skill.toLowerCase().includes(s.toLowerCase()))) {
                     categorized[category].push(skill);
                     isCategorized = true;
@@ -190,7 +182,6 @@ function SkillsFilterComponent({
 
                     return (
                         <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
-                            {/* Category Header - Clickable */}
                             <button
                                 onClick={() => toggleCategory(category)}
                                 className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors duration-200 text-left"

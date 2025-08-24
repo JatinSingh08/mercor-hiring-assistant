@@ -1,4 +1,23 @@
 import type { Candidate } from "@/types/candidate";
+
+export const SKILL_CATEGORIES: Record<string, string[]> = {
+  'Frontend': ['React', 'Vue', 'Angular', 'JavaScript', 'TypeScript', 'HTML', 'CSS', 'SASS', 'Tailwind', 'Bootstrap', 'Next.js', 'Nuxt.js', 'Svelte', 'Ember', 'jQuery'],
+  'Backend': ['Node.js', 'Python', 'Java', 'C#', 'PHP', 'Ruby', 'Go', 'Rust', 'Django', 'Express', 'Spring', 'Laravel', 'ASP.NET', 'FastAPI', 'Flask'],
+  'Database': ['SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'Elasticsearch', 'DynamoDB', 'Oracle', 'SQLite', 'Cassandra', 'Neo4j'],
+  'DevOps': ['Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'CI/CD', 'Jenkins', 'GitLab', 'Terraform', 'Ansible', 'Prometheus', 'Grafana', 'ELK Stack'],
+  'Mobile': ['React Native', 'Flutter', 'iOS', 'Android', 'Swift', 'Kotlin', 'Xamarin', 'Ionic', 'Cordova'],
+  'Other': []
+};
+
+export const APP_CONSTANTS = {
+  CHUNK_SIZE: 50,
+  DEBOUNCE_DELAYS: {
+    WEIGHTS: 150,
+    JSON_INPUT: 500
+  },
+  PROCESSING_TIMEOUT: 1000
+} as const;
+
 export const SEED_APPLICANTS: Candidate[] = [
     {
       "name": "Clever Monkey",

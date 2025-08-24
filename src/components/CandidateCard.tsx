@@ -1,5 +1,6 @@
 import { useMemo, memo, useState } from "react";
 import { Users, Plus, Trash2, Briefcase, Building2, ChevronDown, ChevronUp, Clock, Code, ChevronsDown } from "lucide-react";
+import { Tooltip } from "antd";
 import type { Candidate, Weights } from "@/types/candidate";
 import { parseUSD } from "@/lib/utils";
 import { computeCandidateScore, explainChoice } from "@/lib/scoring";
@@ -53,11 +54,15 @@ function CandidateCardComponent({
           <Users className={`w-4 h-4 sm:w-6 sm:h-6 ${picked ? "text-white" : "text-white"}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-            <h3 className="font-bold leading-tight text-gray-800 text-sm sm:text-base truncate">{candidate.name}</h3>
+          <div className="flex flex-row items-center gap-1 sm:gap-2">
+            <Tooltip title={candidate.name} placement="top">
+              <h3 className="font-bold leading-tight text-gray-800 text-sm sm:text-base truncate">{candidate.name}</h3>
+            </Tooltip>
             <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium w-fit">{candidate.location}</span>
           </div>
-          <div className="text-xs text-gray-500 mt-1 truncate">{candidate.email}</div>
+          <Tooltip title={candidate.email} placement="top">
+            <div className="text-xs text-gray-500 mt-1 truncate">{candidate.email}</div>
+          </Tooltip>
         </div>
         {onToggle && (
           <button 
@@ -87,7 +92,7 @@ function CandidateCardComponent({
                     <span className="text-[10px] uppercase tracking-wide text-purple-600 font-bold">Experience</span>
                   </div>
                   <div className="text-xs font-semibold text-purple-800">
-                    {experienceSummary.roles} roles at {experienceSummary.uniqueCompanies} companies
+                    {experienceSummary.roles} roles
                   </div>
                 </div>
               </div>
@@ -132,8 +137,7 @@ function CandidateCardComponent({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
-                <span className="text-xs font-medium text-gray-700">Work Experience</span>
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{workExperiences.length} roles</span>
+                <span className="text-xs font-medium text-gray-700">Work Experience ({workExperiences.length})</span>
               </div>
               
               {workExperiences.length > 3 && (
